@@ -8,7 +8,7 @@ branding:
 landing:
   tagline: A simple documentation site, built from content in Google Docs.
   viewAll: View All Docs
-  quickLink: Get started.
+  quickLink: <a href="/get-started">Get started</a>.
 
 footer:
   helpText: For help contributing or to report a problem, consult <a href="https://github.com/nytimes/library">the Github Page</a>.
