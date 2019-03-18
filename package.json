@@ -1,6 +1,6 @@
 {
-  "name": "library-custom-demo",
-  "version": "0.0.1",
+  "name": "nyt-library-customization-example",
+  "version": "1.0.0",
   "description": "Sample customizations for your Library instance",
   "main": "index.js",
   "scripts": {},
@@ -8,8 +8,8 @@
     "type": "git",
     "url": "git+https://github.com/nytimes/library-customization-example.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "The New York Times",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/nytimes/library-customization-example/issues"
   },
