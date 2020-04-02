@@ -15,7 +15,7 @@
   },
   "homepage": "https://github.com/nytimes/library-customization-example#readme",
   "dependencies": {
-    "cache-manager-ioredis": "^1.0.1",
+    "cache-manager-ioredis": "^2.0.0",
     "express-sslify": "^1.2.0"
   }
 }
