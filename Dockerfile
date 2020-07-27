@@ -1,4 +1,4 @@
-FROM nytimes/library:v1.0.3
+FROM nytimes/library:v1.3.0
 
 # install custom files
 COPY . ./custom/
