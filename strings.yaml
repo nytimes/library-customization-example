@@ -11,14 +11,14 @@ landing:
   quickLink: <a href="/get-started">Get started</a>.
 
 footer:
-  helpText: For help contributing or to report a problem, consult <a href="https://github.com/nytimes/library">the Github Page</a>.
+  helpText: For help contributing or to report a problem, consult <a href="https://github.com/nytimes/library">the Library GitHub repository</a>.
   defaultEmail: test.user@nytimes.com
 
 search:
   placeholder: What do you want to know about Library?
   results:
     none:
-      suggestion: To request a new page, submit <a href="https://github.com/nytimes/library">a PR on Github</a>.
+      suggestion: To request a new page, submit <a href="https://github.com/nytimes/library">a PR on GitHub</a>.
 
 # errors
 error:
