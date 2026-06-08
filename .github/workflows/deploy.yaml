@@ -79,7 +79,6 @@ jobs:
           project_id: nytint-stg
           secrets: |
             GOOGLE_DRIVE_ID=library-demo_DRIVE_ID:latest
-            REDIS_URI=library-demo_redis_uri:latest
           secrets_update_strategy: overwrite
           env_vars: |
             NODE_ENV=staging
@@ -126,7 +125,6 @@ jobs:
           project_id: nytint-prd
           secrets: |
             GOOGLE_DRIVE_ID=library-demo_DRIVE_ID:latest
-            REDIS_URI=library-demo_redis_uri:latest
           secrets_update_strategy: overwrite
           env_vars: |
             NODE_ENV=production
