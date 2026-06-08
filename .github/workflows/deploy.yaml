@@ -1,0 +1,147 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Build and push container image
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Artifactory token
+        id: artifactory-token
+        uses: hashicorp/vault-action@9c2d817b85b9fff56bcab21cb74b485aee9e9d73 # v2.8.1
+        with:
+          url: https://vault-prd.dv.nyt.net
+          role: newsdev
+          method: jwt
+          path: gha
+          jwtGithubAudience: https://github.com/newsdev
+          secrets: |
+            artifactory/token/drone?scope=applied-permissions/groups:artifactory-read-only access_token | ARTIFACTORY_ACCESS_TOKEN
+
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        id: gcp-auth
+        with:
+          project_id: nytint-prd
+          workload_identity_provider: projects/674108796061/locations/global/workloadIdentityPools/github-actions/providers/github-actions
+          service_account: github-actions-builder@nytint-prd.iam.gserviceaccount.com
+          token_format: access_token
+          export_environment_variables: false
+          create_credentials_file: false
+
+      - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+        with: ${{ fromJson(vars.DOCKER_BUILDX_CONFIGURATION) }}
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: us-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.gcp-auth.outputs.access_token }}
+
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          push: true
+          tags: us-docker.pkg.dev/nytint-prd/gcr.io/library-demo:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-stg:
+    name: Deploy to staging
+    permissions:
+      id-token: write
+    concurrency:
+      group: deploy-stg
+    runs-on: self-hosted
+    needs:
+      - build
+    environment:
+      name: staging
+      url: https://library-demo.stg.newsdev.nytimes.com/
+    steps:
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          project_id: nytint-stg
+          workload_identity_provider: projects/86406085983/locations/global/workloadIdentityPools/github-actions/providers/github-actions
+
+      - uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3.0.1
+        with:
+          service: library-demo
+          image: us-docker.pkg.dev/nytint-prd/gcr.io/library-demo:${{ github.sha }}
+          region: us-east1
+          project_id: nytint-stg
+          secrets: |
+            GOOGLE_DRIVE_ID=library-demo_DRIVE_ID:latest
+            REDIS_URI=library-demo_redis_uri:latest
+          secrets_update_strategy: overwrite
+          env_vars: |
+            NODE_ENV=staging
+            DRIVE_TYPE=team
+          flags: >-
+            --update-labels="team=newsdev,app=library-demo,service=library-demo"
+            --memory=1Gi
+            --cpu=1
+            --cpu-boost
+            --concurrency=60
+            --min-instances=0
+            --max-instances=2
+            --vpc-connector=us-east1
+            --vpc-egress=private-ranges-only
+            --ingress=internal-and-cloud-load-balancing
+            --allow-unauthenticated
+            --no-cpu-throttling
+            --service-account=app-library-demo@nytint-stg.iam.gserviceaccount.com
+
+  deploy-prd:
+    name: Deploy to production
+    permissions:
+      id-token: write
+    concurrency:
+      group: deploy-prd
+      cancel-in-progress: true
+    runs-on: self-hosted
+    needs:
+      - deploy-stg
+    environment:
+      name: production
+      url: https://library-demo.newsdev.nytimes.com/
+    steps:
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          project_id: nytint-prd
+          workload_identity_provider: projects/674108796061/locations/global/workloadIdentityPools/github-actions/providers/github-actions
+
+      - uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3.0.1
+        with:
+          service: library-demo
+          image: us-docker.pkg.dev/nytint-prd/gcr.io/library-demo:${{ github.sha }}
+          region: us-east1
+          project_id: nytint-prd
+          secrets: |
+            GOOGLE_DRIVE_ID=library-demo_DRIVE_ID:latest
+            REDIS_URI=library-demo_redis_uri:latest
+          secrets_update_strategy: overwrite
+          env_vars: |
+            NODE_ENV=production
+            DRIVE_TYPE=team
+          flags: >-
+            --update-labels="team=newsdev,app=library-demo,service=library-demo"
+            --memory=1Gi
+            --cpu=1
+            --cpu-boost
+            --concurrency=60
+            --min-instances=1
+            --max-instances=5
+            --vpc-connector=us-east1
+            --vpc-egress=private-ranges-only
+            --ingress=internal-and-cloud-load-balancing
+            --allow-unauthenticated
+            --no-cpu-throttling
+            --service-account=app-library-demo@nytint-prd.iam.gserviceaccount.com
